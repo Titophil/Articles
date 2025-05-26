@@ -85,6 +85,22 @@ class Author:
 
 
        return [cls.instance_from_db(row) for row in rows]
+   @classmethod
+   def top_author_by_articles(cls):
+    CURSOR.execute("""
+        SELECT au.id, au.name, COUNT(a.id) AS article_count
+        FROM authors au
+        JOIN articles a ON au.id = a.author_id
+        GROUP BY au.id
+        ORDER BY article_count DESC
+        LIMIT 1;
+    """)
+    row = CURSOR.fetchone()
+    if row:
+        author = cls(id=row[0], name=row[1])
+        return author, row[2]  # Return author instance and article count
+    return None, 0
+
    def articles(self):
       from lib.models.article import Article
       sql = "SELECT id, title, author_id, magazine_id FROM articles WHERE author_id = %s;"
@@ -102,7 +118,22 @@ class Author:
        rows = CURSOR.fetchall()
        return [Magazine(id = row[0], name = row[1],category = row[2]) for row in rows]
   
-      
+   def add_article(self, magazine, title):
+        """Create and save a new Article for this author in the given magazine."""
+        article = Article(title=title, author_id=self.id, magazine_id=magazine.id)
+        article.save()
+        return article
+
+   def topic_areas(self):
+        """Return unique list of magazine categories (topics) this author has contributed to."""
+        CURSOR.execute("""
+            SELECT DISTINCT m.category
+            FROM magazines m
+            JOIN articles a ON m.id = a.magazine_id
+            WHERE a.author_id = %s
+        """, (self.id,))
+        rows = CURSOR.fetchall()
+        return [row[0] for row in rows]
   
 
 

@@ -85,6 +85,28 @@ class Magazine:
         CURSOR.execute(sql, (category,))
         rows = CURSOR.fetchall()
         return [cls.instance_from_db(row) for row in rows]
+    @classmethod
+    def magazines_with_multiple_authors(cls):
+        CURSOR.execute("""SELECT m.id, n.name, m.category
+                       FROM magazines m
+                       JOIN articles a ON m.id = a.magazine_id
+                       GROUP BY m.id
+                       HAVING COUNT(DISTINCT a.author_id >=2;
+                       )""")
+        rows = CURSOR.fetchall()
+        return [cls(id = row[0], name = row[1], category = row[2]) for row in rows]
+
+    @classmethod
+    def article_counts(cls):
+       CURSOR.execute("""
+        SELECT m.id, m.name, m.category, COUNT(a.id) AS article_count
+        FROM magazines m
+        LEFT JOIN articles a ON m.id = a.magazine_id
+        GROUP BY m.id;
+    """)
+       rows = CURSOR.fetchall()
+       return [(cls(id=row[0], name=row[1], category=row[2]), row[3]) for row in rows]
+
 
     def articles(self):
         from lib.models.article import Article
@@ -102,5 +124,41 @@ class Magazine:
         WHERE ar.magazine_id = %s;
         """
         CURSOR.execute(sql, (self.id,))
+        rows = CURSOR.fetchall()
+        return [Author(id=row[0], name=row[1]) for row in rows]
+    def contributors(self):
+        """Return unique list of Author instances who have written for this magazine."""
+        CURSOR.execute("""
+            SELECT DISTINCT au.id, au.name
+            FROM authors au
+            JOIN articles a ON au.id = a.author_id
+            WHERE a.magazine_id = %s
+        """, (self.id,))
+        rows = CURSOR.fetchall()
+        return [Author(id=row[0], name=row[1]) for row in rows]
+
+    def article_titles(self):
+        """Return list of titles of all articles in this magazine."""
+        CURSOR.execute("""
+            SELECT title
+            FROM articles
+            WHERE magazine_id = %s
+        """, (self.id,))
+        rows = CURSOR.fetchall()
+        return [row[0] for row in rows]
+
+    def contributing_authors(self):
+        """
+        Return list of Author instances who have written more than 2 articles 
+        in this magazine.
+        """
+        CURSOR.execute("""
+            SELECT au.id, au.name
+            FROM authors au
+            JOIN articles a ON au.id = a.author_id
+            WHERE a.magazine_id = %s
+            GROUP BY au.id, au.name
+            HAVING COUNT(a.id) > 2
+        """, (self.id,))
         rows = CURSOR.fetchall()
         return [Author(id=row[0], name=row[1]) for row in rows]

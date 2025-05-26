@@ -96,7 +96,7 @@ class Article:
         sql = "SELECT id, name FROM authors WHERE id = %s;"
         CURSOR.execute(sql, (self.author_id,))
         row = CURSOR.fetchone()
-        return [Author(id=row[0], name = row[1]) if row else None]
+        return Author(id=row[0], name = row[1]) if row else None
     def magazine(self):
         from lib.models.magazine import Magazine
         sql = "SELECT id, name, category FROM magazines WHERE id = %s;"
