@@ -24,12 +24,14 @@ class Magazine:
     @property
     def category(self):
         return self._category
+
     @category.setter
     def category(self, value):
-        if not isinstance(value,str) or len(value.strip()) == 0:
+        if not isinstance(value, str) or len(value.strip()) == 0:
             raise ValueError("Magazine category must be a non-empty string.")
         self._category = value.strip()
 
+    # Uncomment and use if you want to create table from code
     # @classmethod
     # def create_table(cls):
     #     """Create a new table to persist Magazine instances"""
@@ -85,28 +87,29 @@ class Magazine:
         CURSOR.execute(sql, (category,))
         rows = CURSOR.fetchall()
         return [cls.instance_from_db(row) for row in rows]
+
     @classmethod
     def magazines_with_multiple_authors(cls):
-        CURSOR.execute("""SELECT m.id, n.name, m.category
-                       FROM magazines m
-                       JOIN articles a ON m.id = a.magazine_id
-                       GROUP BY m.id
-                       HAVING COUNT(DISTINCT a.author_id >=2;
-                       )""")
+        CURSOR.execute("""
+            SELECT m.id, m.name, m.category
+            FROM magazines m
+            JOIN articles a ON m.id = a.magazine_id
+            GROUP BY m.id, m.name, m.category
+            HAVING COUNT(DISTINCT a.author_id) >= 2;
+        """)
         rows = CURSOR.fetchall()
-        return [cls(id = row[0], name = row[1], category = row[2]) for row in rows]
+        return [cls(id=row[0], name=row[1], category=row[2]) for row in rows]
 
     @classmethod
     def article_counts(cls):
-       CURSOR.execute("""
-        SELECT m.id, m.name, m.category, COUNT(a.id) AS article_count
-        FROM magazines m
-        LEFT JOIN articles a ON m.id = a.magazine_id
-        GROUP BY m.id;
-    """)
-       rows = CURSOR.fetchall()
-       return [(cls(id=row[0], name=row[1], category=row[2]), row[3]) for row in rows]
-
+        CURSOR.execute("""
+            SELECT m.id, m.name, m.category, COUNT(a.id) AS article_count
+            FROM magazines m
+            LEFT JOIN articles a ON m.id = a.magazine_id
+            GROUP BY m.id, m.name, m.category;
+        """)
+        rows = CURSOR.fetchall()
+        return [(cls(id=row[0], name=row[1], category=row[2]), row[3]) for row in rows]
 
     def articles(self):
         from lib.models.article import Article
@@ -126,6 +129,7 @@ class Magazine:
         CURSOR.execute(sql, (self.id,))
         rows = CURSOR.fetchall()
         return [Author(id=row[0], name=row[1]) for row in rows]
+
     def contributors(self):
         """Return unique list of Author instances who have written for this magazine."""
         CURSOR.execute("""
