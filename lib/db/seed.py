@@ -1,4 +1,4 @@
-from lib.models.magazine import Magazine
+from ..models.magazine import Magazine
 
 def seed():
     magazines = [
